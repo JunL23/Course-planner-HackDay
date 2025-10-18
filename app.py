@@ -113,7 +113,7 @@ def process_pdf():
         "when displaying a class do not seperate the code and number with a space example: BIO100 not BIO 100"
         "for response give an overview which includes the amount of credits required for the major"
         "give another section of core classes that cannot be skipped this should be labeled 'core classes', and a list of additional major requirements if present"
-        "If a requirement lists the poissibility of 2 classes put them on the same line as 'class1 OR class2'  if more than 2 classes are present use commas (including after the last class) and the class code, keep all classes on one line"
+        "If a requirement lists the poissibility of 2 classes put them on the same line as 'class1 OR class2'  if more than 2 classes are present use commas to seperate them and the class code make sure that the last class ALSO HAS A COMMA, keep all classes on one line"
         "if a class has a '/' in between 2 numbers list them as both classes with 'AND' in between. example: 100/200 should be listed as 100 AND 200"
         "if a class has a '/' in between 2 class codes only name one that has a matching code to the core class codes. example: PHY/SCI 100 should be listed as PHY 100"
         "for any section that specifies an amount of classes from a list, after listing the classes in parenthesis add 'choose X from the following' where X is the amount of classes required"
@@ -128,9 +128,19 @@ def process_pdf():
         lines = gemini_response.split('\n')
         
         sub_list = []
+        amount_to_choose = 1
         for line_ind in range(len(lines)):
             if ',' in lines[line_ind]:
-                lines[line_ind] = lines[line_ind].split(',')[0]
+                sub_list = lines[line_ind].split(',')
+                print(sub_list[-1][:5])
+                if sub_list[-1][:5] == ' (cho':
+                    amount_to_choose = int(sub_list[-1][9])
+                lines[line_ind] = sub_list = lines[line_ind].split(',')[:amount_to_choose]
+                print(amount_to_choose)
+                amount_to_choose = 1
+            if 'OR' in lines[line_ind]:
+                lines[line_ind] = lines[line_ind].split('OR')[0].strip()
+
 
 
         for line in lines:

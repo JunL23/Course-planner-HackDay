@@ -55,6 +55,7 @@ def get_class(class_name):
         (class_name,)
     )
 
+    result = cursor.fetchone()
     conn.close()
 
-    return cursor.fetchall()
+    return result

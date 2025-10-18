@@ -1,4 +1,4 @@
-from database import init, csv_to_db, get_db_connection
+from database import init, csv_to_db, get_db_connection, get_class
 
 init()
 
@@ -12,6 +12,9 @@ for row in cursor.fetchall():
 
 cursor = conn.execute('select count(distinct(course_code)) from courses')
 print(cursor.fetchone()[0])
+
+a = get_class("CSC110")
+print(a)
 
 
 conn.close()

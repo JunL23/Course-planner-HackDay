@@ -5,6 +5,7 @@ from google.genai.types import Part
 from io import BytesIO
 import fitz # PyMuPDF
 from PyPDF2 import PdfReader # Kept for optional digital text fallback
+from database import init, get_db_connection, get_class
 
 
 # Configure the Flask app
@@ -93,6 +94,7 @@ def process_image_pdf_with_gemini(file_stream, prompt_text):
 
 @app.route('/process-pdf', methods=['POST'])
 def process_pdf():
+    init()
     if 'pdf' not in request.files:
         return jsonify({"error": "No file part in the request"}), 400
     
@@ -144,6 +146,8 @@ def process_pdf():
 
 
         for line in lines:
+            course = get_class(line)
+            joined = '. '.join(str(x) for x in course)
             print(line)
                 
 

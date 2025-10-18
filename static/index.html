@@ -33,7 +33,7 @@
 
             const formData = new FormData();
             formData.append('pdf', file); // 'pdf' must match the server's expected field name
-
+            console.log(formData);
             try {
                 // Adjust the URL to your backend server endpoint (e.g., http://localhost:5000/process-pdf)
                 const response = await fetch('/process-pdf', { 

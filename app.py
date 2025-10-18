@@ -10,9 +10,11 @@ app = Flask(__name__)
 # --- Configuration ---
 # Set your API Key as an environment variable (GEMINI_API_KEY) or set it directly
 # For security, using an environment variable is highly recommended.
+
+API_KEY = "AIzaSyCNbYmdptLzQm4974BPUzDbXXIN1KpCkbI"
 try:
     # This automatically looks for the GEMINI_API_KEY environment variable
-    client = genai.Client() 
+    client = genai.Client(api_key=API_KEY)
 except Exception as e:
     print(f"Error initializing Gemini client: {e}")
     # Exit or handle error if key isn't set

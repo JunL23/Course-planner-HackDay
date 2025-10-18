@@ -105,14 +105,38 @@ def process_pdf():
     
     # Prompt for Gemini
     prompt = (
-        "You are an expert document reader. Summarize the following document in a clear and concise manner. "
-        "Highlight the main purpose and key takeaways. If the document is longer than 20 pages, base your summary on the first 20 pages. "
+        "For the following document I want you to extract primarily from the page consisting of major requirements and extra major requirements."
+        "take note of the specific class codes, and numbers do not list the amount of credits each class is worth only the total credits required for the major."
+        "give your response in plain text using only letters, numbers, spaces, and parenthesis"
+
+
+        "when displaying a class do not seperate the code and number with a space example: BIO100 not BIO 100"
+        "for response give an overview which includes the amount of credits required for the major"
+        "give another section of core classes that cannot be skipped this should be labeled 'core classes', and a list of additional major requirements if present"
+        "If a requirement lists the poissibility of 2 classes put them on the same line as 'class1 OR class2'  if more than 2 classes are present use commas (including after the last class) and the class code, keep all classes on one line"
+        "if a class has a '/' in between 2 numbers list them as both classes with 'AND' in between. example: 100/200 should be listed as 100 AND 200"
+        "if a class has a '/' in between 2 class codes only name one that has a matching code to the core class codes. example: PHY/SCI 100 should be listed as PHY 100"
+        "for any section that specifies an amount of classes from a list, after listing the classes in parenthesis add 'choose X from the following' where X is the amount of classes required"
+        "for any line that does not have a class code in it list it as 'major notes'"
+
+
     )
 
     try:
         # Use the multimodal function which handles OCR internally
         gemini_response = process_image_pdf_with_gemini(file_stream, prompt)
+        lines = gemini_response.split('\n')
         
+        sub_list = []
+        for line_ind in range(len(lines)):
+            if ',' in lines[line_ind]:
+                lines[line_ind] = lines[line_ind].split(',')[0]
+
+
+        for line in lines:
+            print(line)
+                
+
         # Return the AI's response
         return jsonify({
             "success": True,

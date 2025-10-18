@@ -46,3 +46,15 @@ def csv_to_db(csv_file):
             )
     conn.commit()
     conn.close()
+
+def get_class(class_name):
+    conn = get_db_connection()
+
+    cursor = conn.execute(
+        'SELECT course_code, credits, prerequisites, gen_ed FROM courses WHERE course_code = ?',
+        (class_name,)
+    )
+
+    conn.close()
+
+    return cursor.fetchall()

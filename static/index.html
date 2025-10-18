@@ -16,13 +16,18 @@
     <div id="content">
         <h1>Upload a PDF for Gemini to Read</h1>
 
+        <div class="color-btn-container">
+            <input type="color" id="colorPicker" title="Pick a background color">
+            <button id="colorBtn" onclick="document.getElementById('colorPicker').click()">Change Background</button>        
+        </div>
+
         <input type="file" id="pdfFile" accept=".pdf">
         <br>
         <button onclick="uploadPDF()" id="summary">Get Summary</button>
 
         <h2>Gemini's Response:</h2>
         <div id="response">Waiting for upload...</div>
-
+        
         <script>
             async function uploadPDF() {
                 const fileInput = document.getElementById('pdfFile');
@@ -57,6 +62,18 @@
                     console.error('Error:', error);
                     responseDiv.innerText = `Error processing file: ${error.message}`;
                 }
+            }
+
+            document.getElementById('colorPicker').addEventListener('input', function() {
+                document.body.style.backgroundColor = this.value;
+            });
+
+            // Helper to sync color picker with random color
+            function rgbToHex(rgb) {
+                if (!rgb) return "#f9f9f9";
+                const result = rgb.match(/\d+/g);
+                if (!result) return "#f9f9f9";
+                return "#" + result.map(x => (+x).toString(16).padStart(2, '0')).join('');
             }
         </script>
     </div>

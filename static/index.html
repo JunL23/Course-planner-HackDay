@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Gemini PDF Reader</title>
+    <link rel="stylesheet" href="../style.css">
     <style>
         /* Basic styling for presentation */
         body { font-family: sans-serif; padding: 20px; }
@@ -10,49 +11,54 @@
     </style>
 </head>
 <body>
-    <h1>Upload a PDF for Gemini to Read</h1>
+    <h1>Course planner(Hack Day)</h1>
 
-    <input type="file" id="pdfFile" accept=".pdf">
-    <button onclick="uploadPDF()">Get Summary</button>
+    <div id="content">
+        <h1>Upload a PDF for Gemini to Read</h1>
 
-    <h2>Gemini's Response:</h2>
-    <div id="response">Waiting for upload...</div>
+        <input type="file" id="pdfFile" accept=".pdf">
+        <br>
+        <button onclick="uploadPDF()" id="summary">Get Summary</button>
 
-    <script>
-        async function uploadPDF() {
-            const fileInput = document.getElementById('pdfFile');
-            const file = fileInput.files[0];
-            const responseDiv = document.getElementById('response');
+        <h2>Gemini's Response:</h2>
+        <div id="response">Waiting for upload...</div>
 
-            if (!file) {
-                alert('Please select a PDF file.');
-                return;
-            }
+        <script>
+            async function uploadPDF() {
+                const fileInput = document.getElementById('pdfFile');
+                const file = fileInput.files[0];
+                const responseDiv = document.getElementById('response');
 
-            responseDiv.innerText = 'Uploading and processing... This may take a moment.';
-
-            const formData = new FormData();
-            formData.append('pdf', file); // 'pdf' must match the server's expected field name
-            console.log(formData);
-            try {
-                // Adjust the URL to your backend server endpoint (e.g., http://localhost:5000/process-pdf)
-                const response = await fetch('/process-pdf', { 
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.statusText}`);
+                if (!file) {
+                    alert('Please select a PDF file.');
+                    return;
                 }
 
-                const data = await response.json();
-                responseDiv.innerText = data.gemini_response || 'No response from AI.';
+                responseDiv.innerText = 'Uploading and processing... This may take a moment.';
 
-            } catch (error) {
-                console.error('Error:', error);
-                responseDiv.innerText = `Error processing file: ${error.message}`;
+                const formData = new FormData();
+                formData.append('pdf', file); // 'pdf' must match the server's expected field name
+                console.log(formData);
+                try {
+                    // Adjust the URL to your backend server endpoint (e.g., http://localhost:5000/process-pdf)
+                    const response = await fetch('/process-pdf', { 
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    responseDiv.innerText = data.gemini_response || 'No response from AI.';
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    responseDiv.innerText = `Error processing file: ${error.message}`;
+                }
             }
-        }
-    </script>
+        </script>
+    </div>
 </body>
 </html>

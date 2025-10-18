@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gemini PDF Reader</title>
+    <style>
+        /* Basic styling for presentation */
+        body { font-family: sans-serif; padding: 20px; }
+        #response { margin-top: 20px; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>Upload a PDF for Gemini to Read</h1>
+
+    <input type="file" id="pdfFile" accept=".pdf">
+    <button onclick="uploadPDF()">Get Summary</button>
+
+    <h2>Gemini's Response:</h2>
+    <div id="response">Waiting for upload...</div>
+
+    <script>
+        async function uploadPDF() {
+            const fileInput = document.getElementById('pdfFile');
+            const file = fileInput.files[0];
+            const responseDiv = document.getElementById('response');
+
+            if (!file) {
+                alert('Please select a PDF file.');
+                return;
+            }
+
+            responseDiv.innerText = 'Uploading and processing... This may take a moment.';
+
+            const formData = new FormData();
+            formData.append('pdf', file); // 'pdf' must match the server's expected field name
+
+            try {
+                // Adjust the URL to your backend server endpoint (e.g., http://localhost:5000/process-pdf)
+                const response = await fetch('/process-pdf', { 
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                responseDiv.innerText = data.gemini_response || 'No response from AI.';
+
+            } catch (error) {
+                console.error('Error:', error);
+                responseDiv.innerText = `Error processing file: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

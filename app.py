@@ -1,8 +1,11 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from google import genai
-from PyPDF2 import PdfReader
+from google.genai.types import Part
 from io import BytesIO
+import fitz # PyMuPDF
+from PyPDF2 import PdfReader # Kept for optional digital text fallback
+
 
 # Configure the Flask app
 app = Flask(__name__)
@@ -25,21 +28,71 @@ MODEL_NAME = 'gemini-2.5-flash'
 
 def extract_text_from_pdf(file_stream):
     """
-    Extracts all text from a PDF file stream using PyPDF2.
+    Attempts to extract digital text (for text-based PDFs) as a fast fallback.
     """
     try:
         reader = PdfReader(file_stream)
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text() or ""
-        return text
+        text = "".join(page.extract_text() or "" for page in reader.pages)
+        file_stream.seek(0) # Reset stream position for the next function (image extraction)
+        return text if text.strip() else None
     except Exception as e:
-        print(f"PDF extraction error: {e}")
+        print(f"Digital text extraction error: {e}. Falling back to image-based OCR.")
+        file_stream.seek(0)
         return None
+    
+
+def process_image_pdf_with_gemini(file_stream, prompt_text):
+    """
+    Converts each PDF page to an image and sends it along with the prompt to Gemini.
+    """
+    try:
+        # fitz.open requires the file stream to be read and provided with type
+        pdf_bytes = file_stream.read()
+        pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
+    except Exception as e:
+        raise ValueError(f"Failed to open PDF document: {e}")
+
+    gemini_parts = []
+    
+    # 1. Convert Page to Image
+    for page_num in range(pdf_document.page_count):
+        page = pdf_document.load_page(page_num)
+        
+        # Increase resolution (3x scale = ~300 DPI) for better OCR accuracy
+        pix = page.get_pixmap(matrix=fitz.Matrix(3, 3)) 
+        
+        # Convert to PNG bytes in memory
+        img_bytes = pix.tobytes("png")
+        
+        # Create a Part object for each image
+        gemini_parts.append(
+            Part.from_bytes(
+                data=img_bytes, 
+                mime_type='image/png'
+            )
+        )
+        
+        # NOTE: Gemini has a limit on the number of inputs (parts). 
+        # For very long PDFs, you might hit this limit or a token limit.
+        if len(gemini_parts) > 20: 
+             print("Warning: Processing only the first 20 pages to avoid API limits.")
+             break 
+
+    # 2. Add the text prompt to the end
+    gemini_parts.append(prompt_text)
+    
+    # 3. Call Gemini API
+    print(f"Sending {len(gemini_parts) - 1} page images to Gemini...")
+    response = client.models.generate_content(
+        model=MODEL_NAME,
+        contents=gemini_parts
+    )
+    
+    return response.text
+
 
 @app.route('/process-pdf', methods=['POST'])
 def process_pdf():
-    # 1. Check for the uploaded file
     if 'pdf' not in request.files:
         return jsonify({"error": "No file part in the request"}), 400
     
@@ -47,35 +100,28 @@ def process_pdf():
     if file.filename == '' or not file.filename.lower().endswith('.pdf'):
         return jsonify({"error": "No selected file or file is not a PDF"}), 400
 
-    # 2. Extract Text
-    # Read the file data into a BytesIO buffer for PyPDF2
+    # Read the file data into a BytesIO buffer
     file_stream = BytesIO(file.read())
-    extracted_text = extract_text_from_pdf(file_stream)
-
-    if not extracted_text:
-        return jsonify({"error": "Failed to extract text from PDF. It may be an image-only PDF."}), 500
-
-    # 3. Prepare Prompt for Gemini
+    
+    # Prompt for Gemini
     prompt = (
         "You are an expert document reader. Summarize the following document in a clear and concise manner. "
-        "Highlight the main purpose and key takeaways. \n\n"
-        "--- DOCUMENT TEXT ---\n\n"
-        f"{extracted_text}"
+        "Highlight the main purpose and key takeaways. If the document is longer than 20 pages, base your summary on the first 20 pages. "
     )
 
-    # 4. Call Gemini API
     try:
-        print("Sending text to Gemini...")
-        response = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=prompt
-        )
+        # Use the multimodal function which handles OCR internally
+        gemini_response = process_image_pdf_with_gemini(file_stream, prompt)
         
-        # 5. Return the AI's response
+        # Return the AI's response
         return jsonify({
             "success": True,
-            "gemini_response": response.text
+            "gemini_response": gemini_response
         })
+        
+    except Exception as e:
+        print(f"Processing Failed: {e}")
+        return jsonify({"error": f"File processing or AI failed: {e}"}), 500
         
     except Exception as e:
         print(f"Gemini API Error: {e}")

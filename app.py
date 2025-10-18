@@ -5,6 +5,7 @@ from google.genai.types import Part
 from io import BytesIO
 import fitz # PyMuPDF
 from PyPDF2 import PdfReader # Kept for optional digital text fallback
+from database import init, get_db_connection, get_class
 
 
 # Configure the Flask app
@@ -93,6 +94,7 @@ def process_image_pdf_with_gemini(file_stream, prompt_text):
 
 @app.route('/process-pdf', methods=['POST'])
 def process_pdf():
+    init()
     if 'pdf' not in request.files:
         return jsonify({"error": "No file part in the request"}), 400
     
@@ -144,13 +146,38 @@ def process_pdf():
 
 
         for line in lines:
-            print(line)
-                
+            if isinstance(line, list):
+                for item in line:
+                    course = get_class(item.strip())
+                    if course is not None:
+                        joined = '. '.join(str(x) for x in course)
+                        print(item)
+                    else:
+                        print(f"Course not found for: {item}")
+            else:
+                course = get_class(line.strip())
+                if course is not None:
+                    joined = '. '.join(str(x) for x in course)
+                    print(line)
+                else:
+                    print(f"Course not found for: {line}")
+        
+        prompt_2 = (
+            "given the following classes we know we need, generate a schedule that doesn't bypass pre requisites."
+            "the classes we need to take are" +  gemini_response + "these classes are mandatory and cannot be skipped"
+            "the information that makes up the mandatory calsses are " + joined + " where the information is formatted is the 'class code, class credits, class pre requisites, gen_ed'"
+            "the schedule should have no more than 19 credits per semester and generate 8 semesters"
+        )
+
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt_2
+        )
 
         # Return the AI's response
         return jsonify({
             "success": True,
-            "gemini_response": gemini_response
+            "gemini_response": response.text
         })
         
     except Exception as e:
